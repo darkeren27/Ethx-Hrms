@@ -31,6 +31,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     try {
+      const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const paramUser = urlParams?.get('user') || urlParams?.get('demo');
+      const krishnaUser = DEMO_USERS.find((u) => u.name.toLowerCase().includes('krishna'));
+      if (paramUser?.toLowerCase().includes('krishna') && krishnaUser) {
+        localStorage.setItem('ethx_auth_user', JSON.stringify(krishnaUser));
+        return krishnaUser;
+      }
+      if (paramUser?.toLowerCase().includes('niky')) {
+        localStorage.setItem('ethx_auth_user', JSON.stringify(DEMO_USERS[0]));
+        return DEMO_USERS[0];
+      }
+
       const saved = localStorage.getItem('ethx_auth_user');
       if (saved) {
         const parsed = JSON.parse(saved);

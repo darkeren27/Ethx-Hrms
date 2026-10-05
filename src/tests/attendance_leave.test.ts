@@ -427,6 +427,23 @@ async function runTestSuite() {
     'Timeline stops generating new internship workdays from 1 October 2026 onward'
   );
 
+  // Staff Employee (e.g. Krishna Tiwari) applying for October 2026 leave is accepted and routes to HR
+  const staffOctoberLeave = await hrmsService.applyLeave(
+    {
+      employeeId: 'ETHX-021',
+      employeeName: 'Krishna Tiwari',
+      department: 'IT & Engineering',
+      applicantCategory: 'Employee',
+      leaveType: 'Medical Leave',
+      fromDate: '2026-10-05',
+      toDate: '2026-10-07',
+      reason: 'Medical rest and recovery in October',
+    },
+    'emp-021'
+  );
+  assert(staffOctoberLeave.status === 'Pending', 'Staff employee October leave application successfully accepted as Pending');
+  assert(staffOctoberLeave.totalDays === 3, 'Calculated duration for 5-7 Oct 2026 is exactly 3 working days');
+
   // -------------------------------------------------------------------------
   // TEST SECTION 8: Working Days Calculation in Asia/Kolkata
   // -------------------------------------------------------------------------
