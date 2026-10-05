@@ -395,6 +395,34 @@ export interface JobApplicant {
   currentCompany?: string;
   resumeUrl?: string;
   notes?: string;
+  skills?: string[];
+  expectedSalary?: string;
+  noticePeriod?: string;
+  location?: string;
+  technicalScore?: number;
+  interviewNotes?: Array<{
+    stage: string;
+    interviewer: string;
+    score: number;
+    notes: string;
+    date: string;
+  }>;
+  candidateType?: 'Intern PPO' | 'Lateral Hire' | 'Campus Fresher';
+  internId?: string; // Links directly to intern employee record (e.g., emp-021)
+  internshipDetails?: {
+    completedPeriod: string;
+    mentorScore: number;
+    recommendation: string;
+    mentorName?: string;
+  };
+  convertedToEmployee?: boolean;
+  conversionDate?: string;
+  offerDetails?: {
+    salary: string;
+    designation: string;
+    joiningDate: string;
+    status: 'Draft' | 'Sent' | 'Accepted' | 'Declined';
+  };
 }
 
 export interface PerformanceGoal {

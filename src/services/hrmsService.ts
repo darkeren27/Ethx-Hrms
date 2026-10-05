@@ -819,12 +819,28 @@ export const hrmsService = {
     return frappeClient.getList<JobOpening>('Job Opening');
   },
 
+  async createJobOpening(job: Omit<JobOpening, 'id'>): Promise<JobOpening> {
+    const { isHrAdmin } = getActiveSessionUser();
+    if (!isHrAdmin) {
+      throw new Error('Permission Denied: Only HR Administrators can create new job openings.');
+    }
+    return frappeClient.createDoc<JobOpening>('Job Opening', job);
+  },
+
   async getJobApplicants(): Promise<JobApplicant[]> {
     const { isHrAdmin } = getActiveSessionUser();
     if (!isHrAdmin) {
       return []; // Confidential candidate applications restricted to HR
     }
     return frappeClient.getList<JobApplicant>('Job Applicant');
+  },
+
+  async createJobApplicant(applicant: Omit<JobApplicant, 'id'>): Promise<JobApplicant> {
+    const { isHrAdmin } = getActiveSessionUser();
+    if (!isHrAdmin) {
+      throw new Error('Permission Denied: Only HR Administrators can add job candidates.');
+    }
+    return frappeClient.createDoc<JobApplicant>('Job Applicant', applicant);
   },
 
   async updateApplicantStage(applicantId: string, newStage: JobApplicant['stage']): Promise<JobApplicant> {
@@ -835,6 +851,22 @@ export const hrmsService = {
     return frappeClient.updateDoc<JobApplicant>('Job Applicant', applicantId, {
       stage: newStage,
     });
+  },
+
+  async updateJobApplicant(applicantId: string, updates: Partial<JobApplicant>): Promise<JobApplicant> {
+    const { isHrAdmin } = getActiveSessionUser();
+    if (!isHrAdmin) {
+      throw new Error('Permission Denied: Only HR Administrators can update candidate information.');
+    }
+    return frappeClient.updateDoc<JobApplicant>('Job Applicant', applicantId, updates);
+  },
+
+  async deleteJobApplicant(applicantId: string): Promise<void> {
+    const { isHrAdmin } = getActiveSessionUser();
+    if (!isHrAdmin) {
+      throw new Error('Permission Denied: Only HR Administrators can delete candidate records.');
+    }
+    await frappeClient.deleteDoc('Job Applicant', applicantId);
   },
 
   // Performance — Scoped to own goals for employees
@@ -1249,5 +1281,63 @@ export const hrmsService = {
     });
 
     return { offer: updatedOffer, employee: updatedEmployee };
+  },
+
+  async promoteInternToPermanentEmployee(params: {
+    applicantId: string;
+    internId: string;
+    designation: string;
+    department: string;
+    annualSalary: number;
+    effectiveDate: string;
+    notes?: string;
+  }): Promise<{ success: boolean; employee: Employee; applicant: JobApplicant }> {
+    const { isHrAdmin, user } = getActiveSessionUser();
+    if (!isHrAdmin) {
+      throw new Error('Permission Denied: Only HR Administrators can promote interns to permanent employees.');
+    }
+
+    // 1. Fetch current employee record (preserving ID e.g., emp-021)
+    const employee = await frappeClient.getDoc<Employee>('Employee', params.internId);
+    if (!employee) {
+      throw new Error(`Employee record not found for intern ID: ${params.internId}`);
+    }
+
+    const updatedEmployee = await frappeClient.updateDoc<Employee>('Employee', params.internId, {
+      employmentType: 'Full-time',
+      status: 'Active',
+      compensationStatus: 'Salaried',
+      engagementCategory: 'Confirmed Staff',
+      designation: params.designation || 'Associate Software Engineer',
+      department: params.department || employee.department || 'IT & Engineering',
+      baseSalary: params.annualSalary || 650000,
+      salaryCurrency: 'INR',
+      joiningDate: params.effectiveDate || '2026-10-01',
+      profileCompleteness: 'Complete',
+      conversionDetails: {
+        conversionStatus: 'Permanent Employment Active',
+        permanentEmploymentActive: true,
+        effectiveDate: params.effectiveDate || '2026-10-01',
+        effectiveJoiningDate: params.effectiveDate || '2026-10-01',
+        convertedBy: user?.name || 'Niky Sharma (HR Admin)',
+        originalInternshipPeriod: '01 Jul 2026 - 30 Sep 2026',
+      },
+    });
+
+    // 2. Update the applicant record to Hired / Promoted
+    const updatedApplicant = await frappeClient.updateDoc<JobApplicant>('Job Applicant', params.applicantId, {
+      stage: 'Hired',
+      convertedToEmployee: true,
+      conversionDate: params.effectiveDate || '2026-10-01',
+      offerDetails: {
+        salary: `₹${(params.annualSalary / 100000).toFixed(1)} LPA`,
+        designation: params.designation,
+        joiningDate: params.effectiveDate || '2026-10-01',
+        status: 'Accepted',
+      },
+      notes: `${params.notes || ''} [PROMOTED TO PERMANENT FULL-TIME EMPLOYEE on ${params.effectiveDate || '2026-10-01'}]`.trim(),
+    });
+
+    return { success: true, employee: updatedEmployee, applicant: updatedApplicant };
   },
 };
