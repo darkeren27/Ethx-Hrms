@@ -319,10 +319,11 @@ export const hrmsService = {
     employeeName: string, 
     department: string, 
     type: 'IN' | 'OUT', 
-    workMode?: 'WFO' | 'WFH'
+    workMode?: 'WFO' | 'WFH',
+    targetDate?: string
   ): Promise<AttendanceRecord> {
     const records = await frappeClient.getList<AttendanceRecord>('Attendance');
-    const today = new Date().toISOString().split('T')[0];
+    const today = targetDate || new Date().toISOString().split('T')[0];
     const nowTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     
     const employees = await this.getEmployees();
