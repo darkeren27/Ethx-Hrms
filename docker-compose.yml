@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  # =======================================================
+  # ETHX Enterprise HRMS — Experience Layer (React + Nginx)
+  # =======================================================
+  ethx-hrms-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ethx_hrms_frontend
+    restart: unless-stopped
+    ports:
+      # Support both custom port 7080 and standard ports (80, 3000)
+      - "${FRONTEND_PORT:-7080}:80"
+      - "80:80"
+      - "3000:80"
+    environment:
+      - FRAPPE_BACKEND_URL=http://45.195.159.86:8280
+    networks:
+      - ethx-hrms-net
+
+networks:
+  ethx-hrms-net:
+    driver: bridge

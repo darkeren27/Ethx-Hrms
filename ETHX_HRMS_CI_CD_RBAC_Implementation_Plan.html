@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ETHX HRMS - CI/CD Pipeline & RBAC Security Implementation Plan</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      background-color: #ffffff;
+      line-height: 1.5;
+      font-size: 10.5pt;
+    }
+    .header {
+      border-bottom: 2.5px solid #e11d48;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .header-left h1 {
+      font-size: 20pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+    }
+    .header-left .subtitle {
+      font-size: 10pt;
+      color: #64748b;
+      font-weight: 500;
+      margin-top: 3px;
+    }
+    .header-right {
+      text-align: right;
+      font-size: 8.5pt;
+      color: #64748b;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 8pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-red { background: #ffe4e6; color: #e11d48; border: 1px solid #fecdd3; }
+    .badge-blue { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
+    .badge-green { background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+    .badge-amber { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
+    
+    h2 {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 18px 0 8px 0;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    h3 {
+      font-size: 11pt;
+      font-weight: 600;
+      color: #1e293b;
+      margin: 12px 0 6px 0;
+    }
+    p, li {
+      color: #334155;
+      font-size: 9.5pt;
+      margin-bottom: 6px;
+    }
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 10px;
+    }
+    li {
+      margin-bottom: 4px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+    .card-title {
+      font-size: 9pt;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .card-val {
+      font-size: 10pt;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 14px 0;
+      font-size: 8.5pt;
+    }
+    th {
+      background: #f1f5f9;
+      color: #334155;
+      text-align: left;
+      font-weight: 700;
+      padding: 6px 8px;
+      border: 1px solid #cbd5e1;
+    }
+    td {
+      padding: 5px 8px;
+      border: 1px solid #e2e8f0;
+      vertical-align: middle;
+    }
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    .code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 8.5pt;
+      background: #f1f5f9;
+      padding: 1px 4px;
+      border-radius: 3px;
+      color: #0f172a;
+    }
+    .callout {
+      background: #fff1f2;
+      border-left: 4px solid #e11d48;
+      padding: 8px 12px;
+      margin: 10px 0;
+      border-radius: 0 4px 4px 0;
+    }
+    .callout-blue {
+      background: #f0f9ff;
+      border-left: 4px solid #0284c7;
+      padding: 8px 12px;
+      margin: 10px 0;
+      border-radius: 0 4px 4px 0;
+    }
+    .callout-title {
+      font-weight: 700;
+      font-size: 9pt;
+      margin-bottom: 2px;
+    }
+    .page-break {
+      page-break-after: always;
+    }
+    .footer {
+      margin-top: 20px;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 8pt;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1: EXECUTIVE OVERVIEW & ARCHITECTURE -->
+  <div class="header">
+    <div class="header-left">
+      <h1>ETHX HRMS Enterprise</h1>
+      <div class="subtitle">CI/CD Pipeline &amp; Role-Based Access Control (RBAC) Architecture Plan</div>
+    </div>
+    <div class="header-right">
+      <div><strong>Organization:</strong> ETHX Softcon Inc.</div>
+      <div><strong>Target Repo:</strong> darkeren27/ethx-hrms</div>
+      <div><strong>Date:</strong> October 2026 • Confidential</div>
+    </div>
+  </div>
+
+  <div class="callout-blue">
+    <div class="callout-title" style="color: #0284c7;">PRIMARY DIRECTIVE: ZERO DOWNTIME &amp; APPLICATION PRESERVATION</div>
+    <p style="margin: 0; font-size: 9pt;">
+      The existing application is verified fully operational. Live Docker containers on port 7080 will remain active and untouched. 
+      No production database migrations, automated deployments, container resets, or live ERPNext write operations will be performed.
+    </p>
+  </div>
+
+  <h2>1. Discovered Architecture &amp; Baseline Status</h2>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Frontend Stack &amp; Container</div>
+      <div class="card-val">React 18.3.1 • TypeScript 5.7.2 • Vite 5.4.21</div>
+      <p style="font-size: 8pt; color: #64748b; margin: 4px 0 0 0;">
+        Multi-stage Dockerfile (Node 20 Alpine builder &rarr; Nginx Alpine server). Ports 7080, 3000, 80.
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-title">Backend &amp; ERPNext Integration</div>
+      <div class="card-val">Frappe REST Client + In-Memory Fallback</div>
+      <p style="font-size: 8pt; color: #64748b; margin: 4px 0 0 0;">
+        Target ERPNext Desk: <code>http://45.195.159.86:8280</code>. Production ERPNext access is employee/intern scoped.
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-title">Git &amp; Workspace Environment</div>
+      <div class="card-val">Standalone Local Workspace Needs Isolated Repo</div>
+      <p style="font-size: 8pt; color: #64748b; margin: 4px 0 0 0;">
+        Currently inside user root Git. Must initialize clean dedicated git in project root with branch <code>ci/hrms-access-controls</code>.
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-title">Baseline Quality Gates</div>
+      <div class="card-val">TypeScript: 0 Errors • Build: 4.08s Clean</div>
+      <p style="font-size: 8pt; color: #64748b; margin: 4px 0 0 0;">
+        Bundle size ~1.3MB gzipped to ~315KB. All components compile cleanly without syntax regressions.
+      </p>
+    </div>
+  </div>
+
+  <h2>2. Access Control Principles &amp; Boundary Enforcement</h2>
+  <ul>
+    <li><strong>Principle of Least Privilege:</strong> Employees, interns, and contract personnel can only access their own dossier, shift ledger, leave applications, and assigned assets. Cross-user ID manipulation (IDOR) is strictly rejected at the service and query layer.</li>
+    <li><strong>Designated Approver Isolation:</strong> Niky Sharma (<span class="code">ETHX-005</span>) is the authorized Main HR operator for company attendance and leave approvals. Madhavi Singh (<span class="code">ETHX-006</span>) is IT HR and does not inherit administrative approval rights.</li>
+    <li><strong>Self-Approval Prohibition &amp; Escalation:</strong> Niky Sharma cannot approve her own leave applications. Her requests automatically route to Company Director Ram Chaturvedi (<span class="code">ETHX-001</span>) for executive sign-off.</li>
+    <li><strong>Intern Policy Bounds:</strong> 8 Unpaid Interns (<span class="code">ETHX-014</span> to <span class="code">ETHX-021</span>) operate under a strict 1 July 2026 – 30 September 2026 schedule with an unpaid-leave-only policy. The end date will not trigger automated account deletion, fabricated salary deductions, or unauthorized status alterations.</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- PAGE 2: COMPLETE PERSONNEL DIRECTORY & RBAC MATRIX -->
+  <div class="header">
+    <div class="header-left">
+      <h1>ETHX HRMS Personnel &amp; RBAC Matrix</h1>
+      <div class="subtitle">Complete 21-Personnel Identity &amp; Authorization Specification</div>
+    </div>
+    <div class="header-right">
+      <div>Section 3 • RBAC Policy</div>
+    </div>
+  </div>
+
+  <h2>3. Verified 21-Personnel Directory &amp; Role Mappings</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 10%;">Emp ID</th>
+        <th style="width: 22%;">Full Name</th>
+        <th style="width: 20%;">Designation</th>
+        <th style="width: 18%;">Role &amp; Category</th>
+        <th style="width: 30%;">Access Boundaries &amp; Scope</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="code">ETHX-001</td>
+        <td><strong>Ram Chaturvedi</strong></td>
+        <td>Company Director</td>
+        <td><span class="badge badge-amber">Director</span></td>
+        <td>Executive Board oversight, escalations, Niky Sharma leave approver.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-002</td>
+        <td><strong>Rohan</strong></td>
+        <td>Company Director</td>
+        <td><span class="badge badge-amber">Director</span></td>
+        <td>Executive Board member; corporate governance records.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-003</td>
+        <td><strong>Virender Kumar</strong></td>
+        <td>Company Director</td>
+        <td><span class="badge badge-amber">Director</span></td>
+        <td>US Contract business oversight; executive records only.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-004</td>
+        <td><strong>Siva Kumar</strong></td>
+        <td>IT Director / Manager</td>
+        <td><span class="badge badge-blue">IT Leadership</span></td>
+        <td>Engineering supervisor; no global attendance/leave admin rights.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-005</td>
+        <td><strong>Niky Sharma</strong></td>
+        <td>Main HR</td>
+        <td><span class="badge badge-red">HR Admin</span></td>
+        <td>Company-wide attendance &amp; leave approvals. Self-approval blocked.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-006</td>
+        <td><strong>Madhavi Singh</strong></td>
+        <td>IT HR</td>
+        <td><span class="badge badge-blue">HR Executive</span></td>
+        <td>IT recruitment &amp; onboarding; no automatic leave approval grant.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-007</td>
+        <td><strong>Shubham Patane</strong></td>
+        <td>Employee</td>
+        <td><span class="badge badge-green">Employee</span></td>
+        <td>Personal shift ledger, 18/12/10 leave quota, personal IT asset.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-008</td>
+        <td><strong>Saurav Sarkar</strong></td>
+        <td>Employee</td>
+        <td><span class="badge badge-green">Employee</span></td>
+        <td>Personal shift ledger, 18/12/10 leave quota, personal IT asset.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-009</td>
+        <td><strong>Vishal Walunj</strong></td>
+        <td>Employee</td>
+        <td><span class="badge badge-green">Employee</span></td>
+        <td>Personal shift ledger, 18/12/10 leave quota, personal IT asset.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-010</td>
+        <td><strong>Shruti Pawar</strong></td>
+        <td>Employee</td>
+        <td><span class="badge badge-green">Employee</span></td>
+        <td>Personal shift ledger, 18/12/10 leave quota, personal IT asset.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-011</td>
+        <td><strong>Ganesh Kulkarni</strong></td>
+        <td>Employee</td>
+        <td><span class="badge badge-green">Employee</span></td>
+        <td>Personal shift ledger, 18/12/10 leave quota, personal IT asset.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-012</td>
+        <td><strong>Archit Sharma</strong></td>
+        <td>Contract Employee</td>
+        <td><span class="badge badge-green">Contract</span></td>
+        <td>Remote contract operations; personal shift ledger &amp; contract terms.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-013</td>
+        <td><strong>Rajnesh</strong></td>
+        <td>Contract Employee</td>
+        <td><span class="badge badge-green">Contract</span></td>
+        <td>Contract operations; personal shift ledger &amp; contract terms.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-014</td>
+        <td><strong>Deepti Tiwari</strong></td>
+        <td>Unpaid Intern</td>
+        <td><span class="badge badge-blue">Intern</span></td>
+        <td>Personal 3-month attendance (Mon-Wed WFO, Thu-Fri WFH), unpaid leave.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-015</td>
+        <td><strong>Goraksh Kaduskar</strong></td>
+        <td>Unpaid Intern</td>
+        <td><span class="badge badge-blue">Intern</span></td>
+        <td>Personal 3-month attendance (Mon-Wed WFO, Thu-Fri WFH), unpaid leave.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-016</td>
+        <td><strong>Rushikesh Kulkarni</strong></td>
+        <td>Unpaid Intern</td>
+        <td><span class="badge badge-blue">Intern</span></td>
+        <td>Personal 3-month attendance (Mon-Wed WFO, Thu-Fri WFH), unpaid leave.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-017</td>
+        <td><strong>Utkarsh</strong></td>
+        <td>Unpaid Intern</td>
+        <td><span class="badge badge-blue">Intern</span></td>
+        <td>Personal 3-month attendance (Mon-Wed WFO, Thu-Fri WFH), unpaid leave.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-018</td>
+        <td><strong>Shakti Thakur</strong></td>
+        <td>Unpaid Intern</td>
+        <td><span class="badge badge-blue">Intern</span></td>
+        <td>Personal 3-month attendance (Mon-Wed WFO, Thu-Fri WFH), unpaid leave.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-019</td>
+        <td><strong>Sayali Mahant</strong></td>
+        <td>Unpaid Intern</td>
+        <td><span class="badge badge-blue">Intern</span></td>
+        <td>Personal 3-month attendance (Mon-Wed WFO, Thu-Fri WFH), unpaid leave.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-020</td>
+        <td><strong>Preeti Bagal</strong></td>
+        <td>Unpaid Intern</td>
+        <td><span class="badge badge-blue">Intern</span></td>
+        <td>Personal 3-month attendance (Mon-Wed WFO, Thu-Fri WFH), unpaid leave.</td>
+      </tr>
+      <tr>
+        <td class="code">ETHX-021</td>
+        <td><strong>Krishna Tiwari</strong></td>
+        <td>Unpaid Intern</td>
+        <td><span class="badge badge-blue">Intern</span></td>
+        <td><strong>Strict self-service:</strong> Own profile, Asus Vivobook, syllabus, own attendance.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- PAGE 3: CI/CD PIPELINE ARCHITECTURE & WORKFLOW -->
+  <div class="header">
+    <div class="header-left">
+      <h1>GitHub Actions CI Pipeline Architecture</h1>
+      <div class="subtitle">Automated Multi-Stage Verification Workflow (.github/workflows/ci.yml)</div>
+    </div>
+    <div class="header-right">
+      <div>Section 4 • DevOps Architecture</div>
+    </div>
+  </div>
+
+  <h2>4. Continuous Integration Pipeline Specification</h2>
+  <div class="card" style="margin-bottom: 12px;">
+    <div class="card-title">Pipeline Triggers &amp; Security Baseline</div>
+    <ul style="margin: 4px 0 0 16px; font-size: 8.5pt;">
+      <li><strong>Triggers:</strong> <code>push</code> to <code>main</code> / <code>master</code>, <code>pull_request</code> to default branch, and manual <code>workflow_dispatch</code>.</li>
+      <li><strong>Permissions:</strong> <code>contents: read</code> (Least privilege principle; tokens cannot write to repository).</li>
+      <li><strong>Concurrency:</strong> Grouped by ref with <code>cancel-in-progress: true</code> to avoid redundant resource consumption.</li>
+      <li><strong>Timeout:</strong> 15 minutes strict threshold to eliminate hung jobs.</li>
+    </ul>
+  </div>
+
+  <h3>Multi-Stage Job Topology</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 20%;">Stage</th>
+        <th style="width: 30%;">Commands Executed</th>
+        <th style="width: 50%;">Security &amp; Quality Objectives</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. Lint &amp; TypeCheck</strong></td>
+        <td><code>npm ci</code><br><code>npx tsc --noEmit</code></td>
+        <td>Ensures strict TypeScript compilation, import integrity, and zero type regressions before any code is built.</td>
+      </tr>
+      <tr>
+        <td><strong>2. Automated RBAC Tests</strong></td>
+        <td><code>npx tsx src/tests/attendance_leave.test.ts</code></td>
+        <td>Executes synthetic test suite validating access denial for unauthenticated users, IDOR defense, and self-approval blocks.</td>
+      </tr>
+      <tr>
+        <td><strong>3. Production Web Build</strong></td>
+        <td><code>npm run build</code></td>
+        <td>Verifies bundle chunking, asset minification, and CSS compilation with Vite in a clean CI container.</td>
+      </tr>
+      <tr>
+        <td><strong>4. Docker Container Build</strong></td>
+        <td><code>docker build -t ethx-hrms:ci .</code></td>
+        <td>Guarantees that the multi-stage Nginx container builds successfully without deploying or replacing live containers.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>5. Step-by-Step Implementation Roadmap</h2>
+  <ol>
+    <li>
+      <strong>Phase 1: Local Checkpoint &amp; Isolated Git Repository</strong><br>
+      Create a dedicated <code>.gitignore</code> inside the project root to securely omit <code>.env</code>, <code>node_modules</code>, and build caches. Initialize a dedicated git repo within the folder and branch to <code>ci/hrms-access-controls</code>.
+    </li>
+    <li>
+      <strong>Phase 2: RBAC Test Automation &amp; Service Logic Fix</strong><br>
+      Configure <code>npm test</code> script. Enhance <code>src/services/hrmsService.ts</code> so headless test runners and API callers validate <code>callerUserId</code> accurately. Ensure all 32+ RBAC tests pass with 100% green output.
+    </li>
+    <li>
+      <strong>Phase 3: GitHub Actions CI Workflow Setup</strong><br>
+      Commit <code>.github/workflows/ci.yml</code> configured with caching, timeout, and the 4-stage validation pipeline.
+    </li>
+    <li>
+      <strong>Phase 4: Remote Sync &amp; Reviewable Pull Request</strong><br>
+      Connect to GitHub user <code>darkeren27</code>, create/configure remote <code>ethx-hrms</code>, push branch <code>ci/hrms-access-controls</code>, and generate an unmerged Pull Request.
+    </li>
+    <li>
+      <strong>Phase 5: Documentation &amp; Audit Delivery</strong><br>
+      Deliver <code>CI_SETUP.md</code> with full local verification commands, workflow descriptions, and recovery rollback steps.
+    </li>
+  </ol>
+
+  <div class="footer">
+    <span>ETHX Softcon Inc. • Enterprise Human Capital Management</span>
+    <span>Document ID: ETHX-HRMS-CI-RBAC-2026-V1</span>
+    <span>Page 3 of 3</span>
+  </div>
+
+</body>
+</html>
