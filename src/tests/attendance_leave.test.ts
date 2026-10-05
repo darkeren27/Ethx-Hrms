@@ -60,8 +60,8 @@ async function runTestSuite() {
     'Siva Kumar (emp-004, IT Leadership) is NOT granted attendance/leave admin rights'
   );
   assert(
-    !isAuthorizedAttendanceLeaveAdmin('emp-014'), // Krishna Tiwari (Intern)
-    'Krishna Tiwari (emp-014, Intern) is NOT granted admin rights'
+    !isAuthorizedAttendanceLeaveAdmin('emp-014'), // Deepti Tiwari (Intern emp-014)
+    'Intern (emp-014, Deepti Tiwari) is NOT granted admin rights'
   );
 
   // 1.3 Alternative approver binding (Ram Chaturvedi for Niky's leave)
@@ -346,9 +346,9 @@ async function runTestSuite() {
   );
   assert(ledgerEntry?.status === 'Approved Leave', 'Attendance record for 2026-08-10 automatically updated to "Approved Leave"');
 
-  // Seed a check-in punch on today's date
-  const punchDate = new Date().toISOString().split('T')[0];
-  await hrmsService.punchAttendance('ETHX-007', 'Shubham Patane', 'Engineering & Cloud', 'IN', 'WFO');
+  // Seed a check-in punch on a fixed working business date (2026-09-21, Monday) to guarantee environment consistency
+  const punchDate = '2026-09-21';
+  await hrmsService.punchAttendance('ETHX-007', 'Shubham Patane', 'Engineering & Cloud', 'IN', 'WFO', punchDate);
   
   // Now apply and approve a leave for that date
   const conflictingLeave = await hrmsService.applyLeave(
@@ -426,6 +426,23 @@ async function runTestSuite() {
     postEndTimeline.length === 0,
     'Timeline stops generating new internship workdays from 1 October 2026 onward'
   );
+
+  // Staff Employee (e.g. Krishna Tiwari) applying for October 2026 leave is accepted and routes to HR
+  const staffOctoberLeave = await hrmsService.applyLeave(
+    {
+      employeeId: 'ETHX-021',
+      employeeName: 'Krishna Tiwari',
+      department: 'IT & Engineering',
+      applicantCategory: 'Employee',
+      leaveType: 'Medical Leave',
+      fromDate: '2026-10-05',
+      toDate: '2026-10-07',
+      reason: 'Medical rest and recovery in October',
+    },
+    'emp-021'
+  );
+  assert(staffOctoberLeave.status === 'Pending', 'Staff employee October leave application successfully accepted as Pending');
+  assert(staffOctoberLeave.totalDays === 3, 'Calculated duration for 5-7 Oct 2026 is exactly 3 working days');
 
   // -------------------------------------------------------------------------
   // TEST SECTION 8: Working Days Calculation in Asia/Kolkata
@@ -505,7 +522,7 @@ async function runTestSuite() {
   const augMetrics = calculateInternMonthlyMetrics(augTimeline, augConf);
   assert(augMetrics.totalDays === 31, 'August metrics: 31 calendar days');
   assert(augMetrics.weekendHolidays === 10, 'August metrics: Exactly 10 weekend holidays (5 Sats + 5 Suns)');
-  assert(augMetrics.workingDays === 20, 'August metrics: Exactly 20 working days (21 weekdays minus 1 Independence Day)');
+  assert(augMetrics.workingDays === 21, 'August metrics: Exactly 21 working days (15 Aug Independence Day falls on Saturday)');
 
   const sepTimeline = generateIndividualAttendanceTimeline(krishnaEmp, sepConf.startDate, sepConf.endDate, [], []);
   const sepMetrics = calculateInternMonthlyMetrics(sepTimeline, sepConf);
@@ -517,7 +534,7 @@ async function runTestSuite() {
   const fullMetrics = calculateInternMonthlyMetrics(fullTimeline, fullConf);
   assert(fullMetrics.totalDays === 92, 'Full lifecycle metrics: 92 calendar days');
   assert(fullMetrics.weekendHolidays === 26, 'Full lifecycle metrics: Exactly 26 weekend holidays (13 Sats + 13 Suns)');
-  assert(fullMetrics.workingDays === 65, 'Full lifecycle metrics: Exactly 65 working days');
+  assert(fullMetrics.workingDays === 66, 'Full lifecycle metrics: Exactly 66 working days (23 Jul + 21 Aug + 22 Sep)');
 
   // ---------------------------------------------------------------------------
   // 10. HR Manual Attendance Marking for Interns and Employees

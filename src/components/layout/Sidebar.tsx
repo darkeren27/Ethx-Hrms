@@ -15,6 +15,7 @@ import {
   Settings,
   ShieldCheck,
   LogOut,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
@@ -32,9 +33,39 @@ interface NavGroup {
   items: NavItem[];
 }
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  isMobileOpen?: boolean;
+  onClose?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose }) => {
   const navigate = useNavigate();
   const { user, role, logout } = useAuth();
+  const drawerRef = React.useRef<HTMLElement>(null);
+
+  // Lock body scroll and handle Escape key when mobile menu is open
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMobileOpen && onClose) {
+        onClose();
+      }
+    };
+
+    if (isMobileOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+      if (drawerRef.current) {
+        drawerRef.current.focus();
+      }
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [isMobileOpen, onClose]);
 
   const isEmployee = role === 'Employee';
 
@@ -96,17 +127,31 @@ export const Sidebar: React.FC = () => {
         },
       ];
 
-  return (
-    <aside className="w-64 bg-brand-dark flex-shrink-0 border-r border-brand-border/70 flex flex-col h-full select-none relative">
+  const renderSidebarContent = (isMobile = false) => (
+    <>
       {/* Brand Header */}
       <div className="h-16 px-5 flex items-center justify-between border-b border-white/5 bg-brand-dark/70 shrink-0">
-        <NavLink to="/dashboard" className="flex items-center hover:opacity-95 transition-opacity">
+        <NavLink
+          to="/dashboard"
+          onClick={isMobile && onClose ? onClose : undefined}
+          className="flex items-center hover:opacity-95 transition-opacity"
+        >
           <img
             src="/brand/ethx-logo-footer.png"
             alt="ETHX Softcon"
             className="h-8 w-auto object-contain max-w-[180px]"
           />
         </NavLink>
+        {isMobile && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 -mr-2 rounded-xl text-brand-slate hover:text-white hover:bg-white/10 transition-colors"
+            aria-label="Close navigation menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Navigation List */}
@@ -121,6 +166,7 @@ export const Sidebar: React.FC = () => {
                 <NavLink
                   key={item.href}
                   to={item.href}
+                  onClick={isMobile && onClose ? onClose : undefined}
                   className={({ isActive }) =>
                     cn(
                       'group flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200',
@@ -191,6 +237,7 @@ export const Sidebar: React.FC = () => {
 
           <button
             onClick={() => {
+              if (isMobile && onClose) onClose();
               logout();
               navigate('/login');
             }}
@@ -202,6 +249,39 @@ export const Sidebar: React.FC = () => {
           </button>
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Persistent Sidebar (Permanent w-64, hidden on mobile) */}
+      <aside className="hidden lg:flex w-64 bg-brand-dark flex-shrink-0 border-r border-brand-border/70 flex-col h-full select-none relative z-20">
+        {renderSidebarContent(false)}
+      </aside>
+
+      {/* Mobile Overlay Drawer (Rendered conditionally on <lg) */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+            onClick={onClose}
+            aria-hidden="true"
+          />
+
+          {/* Drawer Panel */}
+          <aside
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation Menu"
+            tabIndex={-1}
+            className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-brand-dark border-r border-brand-border/70 flex flex-col h-full select-none shadow-2xl z-10 outline-none animate-in slide-in-from-left duration-200"
+          >
+            {renderSidebarContent(true)}
+          </aside>
+        </div>
+      )}
+    </>
   );
 };

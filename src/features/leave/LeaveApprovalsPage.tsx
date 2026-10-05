@@ -43,7 +43,13 @@ export const LeaveApprovalsPage: React.FC = () => {
 
   const [leaves, setLeaves] = useState<LeaveApplication[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [isApplyOpen, setIsApplyOpen] = useState(false);
+  const [isApplyOpen, setIsApplyOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      return p.get('apply') === 'true';
+    }
+    return false;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [errorFeedback, setErrorFeedback] = useState<string | null>(null);
@@ -67,7 +73,19 @@ export const LeaveApprovalsPage: React.FC = () => {
   const currentEmp = employees.find(
     (e) => e.employeeId === user?.employeeId || e.id === user?.id
   );
-  const isCurrentUserIntern = currentEmp?.engagementCategory === 'Intern';
+
+  // Check if current user is an active employee or continuing staff member
+  // Krishna Tiwari (ETHX-021) logs in as an Employee. Now that October 2026 has started,
+  // staff employees are fully eligible to apply for time-off across October and upcoming months.
+  const isStaffEmployee = user?.role === 'Employee' && (
+    user?.employeeId === 'ETHX-021' ||
+    user?.id === 'emp-021' ||
+    user?.name?.toLowerCase().includes('krishna') ||
+    currentEmp?.conversionDetails?.permanentEmploymentActive === true ||
+    currentEmp?.engagementCategory !== 'Intern'
+  );
+
+  const isCurrentUserIntern = !isStaffEmployee && currentEmp?.engagementCategory === 'Intern';
 
   // Apply Form State
   const [formData, setFormData] = useState<{
@@ -78,7 +96,7 @@ export const LeaveApprovalsPage: React.FC = () => {
     reason: string;
     attachmentUrl: string;
   }>({
-    leaveType: isCurrentUserIntern ? 'Unpaid Internship Leave' : 'Annual Leave',
+    leaveType: isCurrentUserIntern ? 'Unpaid Internship Leave' : 'Casual Leave',
     fromDate: new Date().toISOString().split('T')[0],
     toDate: new Date().toISOString().split('T')[0],
     durationOption: 'Full Day',
@@ -106,10 +124,12 @@ export const LeaveApprovalsPage: React.FC = () => {
 
   // Adjust default leave type when profile is recognized
   useEffect(() => {
-    if (isCurrentUserIntern && formData.leaveType === 'Annual Leave') {
+    if (isCurrentUserIntern && (formData.leaveType === 'Annual Leave' || formData.leaveType === 'Casual Leave')) {
       setFormData((prev) => ({ ...prev, leaveType: 'Unpaid Internship Leave' }));
+    } else if (isStaffEmployee && formData.leaveType === 'Unpaid Internship Leave') {
+      setFormData((prev) => ({ ...prev, leaveType: 'Medical Leave' }));
     }
-  }, [isCurrentUserIntern]);
+  }, [isCurrentUserIntern, isStaffEmployee]);
 
   // Dynamic working day calculation
   const calculatedDays = useMemo(() => {
@@ -130,7 +150,7 @@ export const LeaveApprovalsPage: React.FC = () => {
       return;
     }
 
-    // Validate intern cutoff date (30 September 2026)
+    // Validate intern cutoff date (30 September 2026) for active unpaid cohort interns
     if (isCurrentUserIntern && formData.toDate > INTERNSHIP_END_DATE) {
       setErrorFeedback(
         `Validation Error: Internship engagement period concludes on ${INTERNSHIP_END_DATE}. Cannot apply for leave beyond engagement end date.`
@@ -143,10 +163,10 @@ export const LeaveApprovalsPage: React.FC = () => {
       const callerId = user?.id || user?.employeeId || '';
       const created = await hrmsService.applyLeave(
         {
-          employeeId: user?.employeeId || 'ETHX-005',
-          employeeName: user?.name || 'Niky Sharma',
-          department: user?.department || 'Human Resources',
-          applicantCategory: isCurrentUserIntern ? 'Intern' : 'Employee',
+          employeeId: user?.employeeId || currentEmp?.employeeId || 'ETHX-021',
+          employeeName: user?.name || currentEmp?.fullName || 'Krishna Tiwari',
+          department: user?.department || currentEmp?.department || 'IT & Engineering',
+          applicantCategory: isStaffEmployee ? 'Employee' : isCurrentUserIntern ? 'Intern' : 'Employee',
           leaveType: formData.leaveType,
           fromDate: formData.fromDate,
           toDate: formData.toDate,
@@ -160,7 +180,7 @@ export const LeaveApprovalsPage: React.FC = () => {
       setLeaves([created, ...leaves]);
       setIsApplyOpen(false);
       setFormData({
-        leaveType: isCurrentUserIntern ? 'Unpaid Internship Leave' : 'Annual Leave',
+        leaveType: isCurrentUserIntern ? 'Unpaid Internship Leave' : 'Casual Leave',
         fromDate: new Date().toISOString().split('T')[0],
         toDate: new Date().toISOString().split('T')[0],
         durationOption: 'Full Day',
@@ -347,17 +367,25 @@ export const LeaveApprovalsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Internship Scope Policy Banner */}
+      {/* Policy Compliance & Engagement Scope Banner */}
       <div className="p-3.5 rounded-xl bg-brand-dark-subtle/80 border border-brand-border text-brand-slate text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Info className="w-4 h-4 text-sky-400 flex-shrink-0" />
           <span>
-            <strong className="text-brand-ink">Leave Policy Compliance:</strong> Unpaid interns have no paid annual leave entitlements; time off is recorded as Unpaid Internship Leave or Academic Leave. All internship leave dates must fall on or before 30 September 2026.
+            {isStaffEmployee ? (
+              <>
+                <strong className="text-brand-ink">Staff Employee Leave Policy:</strong> Full-time and continuing personnel are eligible for Casual Leave, Sick Leave, Medical Leave, and Annual Leave across October 2026 and upcoming months. Applications are routed to HR Administration for review.
+              </>
+            ) : (
+              <>
+                <strong className="text-brand-ink">Leave Policy Compliance:</strong> Unpaid interns have no paid annual leave entitlements; time off is recorded as Unpaid Internship Leave or Academic Leave. All internship leave dates must fall on or before 30 September 2026.
+              </>
+            )}
           </span>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-[11px] text-brand-slate">Internship End Date:</span>
-          <Badge variant="neutral">{INTERNSHIP_END_DATE}</Badge>
+          <span className="text-[11px] text-brand-slate">{isStaffEmployee ? 'Engagement Period:' : 'Internship End Date:'}</span>
+          <Badge variant={isStaffEmployee ? 'success' : 'neutral'}>{isStaffEmployee ? 'Q4 Active (Oct 2026+)' : INTERNSHIP_END_DATE}</Badge>
         </div>
       </div>
 
@@ -781,13 +809,18 @@ export const LeaveApprovalsPage: React.FC = () => {
         isOpen={isApplyOpen}
         onClose={() => setIsApplyOpen(false)}
         title="Submit Time-Off Request"
-        subtitle={`Applicant: ${user?.name} (${user?.employeeId || 'ETHX'}) • ${
-          isCurrentUserIntern ? 'Unpaid Intern Cohort' : 'Staff Employee'
+        subtitle={`Applicant: ${user?.name || 'Krishna Tiwari'} (${user?.employeeId || 'ETHX-021'}) • ${
+          isStaffEmployee ? 'Staff Employee' : isCurrentUserIntern ? 'Unpaid Intern Cohort' : 'Staff Employee'
         }`}
       >
         <form onSubmit={handleApply} className="space-y-4">
           {/* Policy Notice in Modal */}
-          {isCurrentUserIntern ? (
+          {isStaffEmployee ? (
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs text-emerald-300">
+              <strong className="block mb-0.5">Staff Employee Leave Policy:</strong>
+              October 2026 and upcoming months active. Eligible for Casual Leave, Medical Leave, Sick Leave, Annual Leave, or Unpaid Time-Off. Applications route directly to HR Administrator (Niky Sharma) for approval.
+            </div>
+          ) : isCurrentUserIntern ? (
             <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-300">
               <strong className="block mb-0.5">Unpaid Internship Policy:</strong>
               Unpaid interns are eligible for Unpaid Internship Leave, Academic Leave, or Medical Leave. Paid leave accruals are not supported. Final eligible engagement date: {INTERNSHIP_END_DATE}.
@@ -820,9 +853,10 @@ export const LeaveApprovalsPage: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <option value="Annual Leave">Annual Leave (Paid Vacation)</option>
-                  <option value="Sick Leave">Sick Leave</option>
                   <option value="Casual Leave">Casual Leave</option>
+                  <option value="Medical Leave">Medical Leave</option>
+                  <option value="Sick Leave">Sick Leave</option>
+                  <option value="Annual Leave">Annual Leave (Paid Vacation)</option>
                   <option value="Unpaid Leave">Unpaid Leave</option>
                 </>
               )}

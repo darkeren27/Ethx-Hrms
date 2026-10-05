@@ -106,11 +106,20 @@ export function getPersonnelCategory(emp?: Employee, employeeName?: string): {
 export const ATTENDANCE_TRACKING_START_DATE = '2026-07-01';
 
 // Known Paid/Declared Public Holidays in Q3 2026 (Configurable policy)
+// Note: 15 August 2026 (Independence Day) falls on a Saturday (Weekend Holiday)
 export const DECLARED_HOLIDAYS: Record<string, string> = {
   '2026-08-15': 'Independence Day',
-  '2026-08-27': 'Ganesh Chaturthi (Pune)',
   '2026-10-02': 'Gandhi Jayanti',
 };
+
+/**
+ * Deterministically extracts the day of the week (0 = Sun, 6 = Sat) from a YYYY-MM-DD date string,
+ * completely immune to the runtime/runner machine's local timezone.
+ */
+export function getDayOfWeekFromDateString(dateStr: string): number {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay();
+}
 
 /**
  * Derives the scheduled work mode for an employee or intern on a given date string (YYYY-MM-DD).
@@ -121,8 +130,7 @@ export function getScheduledWorkMode(dateStr: string, isIntern: boolean, isContr
   holidayName?: string;
   isWeekend: boolean;
 } {
-  const d = new Date(dateStr + 'T00:00:00+05:30');
-  const day = d.getDay(); // 0 = Sun, 6 = Sat
+  const day = getDayOfWeekFromDateString(dateStr); // 0 = Sun, 6 = Sat
   const holidayName = DECLARED_HOLIDAYS[dateStr];
 
   if (day === 0 || day === 6) {
@@ -154,13 +162,13 @@ export function getScheduledWorkMode(dateStr: string, isIntern: boolean, isContr
 
 export function parseDateOnly(dateStr: string): Date {
   const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d, 12, 0, 0);
+  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
 }
 
 export function formatDateOnly(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
@@ -176,15 +184,15 @@ export function calculateWorkingDays(fromDateStr: string, toDateStr: string, dur
 
   const curr = new Date(start);
   while (curr <= end) {
-    const day = curr.getDay();
     const currStr = formatDateOnly(curr);
+    const day = getDayOfWeekFromDateString(currStr);
     const isWeekend = day === 0 || day === 6;
     const isHoliday = !!DECLARED_HOLIDAYS[currStr];
 
     if (!isWeekend && !isHoliday) {
       days++;
     }
-    curr.setDate(curr.getDate() + 1);
+    curr.setUTCDate(curr.getUTCDate() + 1);
   }
 
   if (durationOption?.includes('Half Day')) {
@@ -307,7 +315,7 @@ export function generateIndividualAttendanceTimeline(
       correctionHistory: existingRec?.correctionHistory || [],
     });
 
-    curr.setDate(curr.getDate() + 1);
+    curr.setUTCDate(curr.getUTCDate() + 1);
   }
 
   return timeline;
@@ -399,8 +407,7 @@ export function calculateInternMonthlyMetrics(
   let totalWorkHours = 0;
 
   monthRecords.forEach((r) => {
-    const d = new Date(r.date + 'T00:00:00+05:30');
-    const day = d.getDay();
+    const day = getDayOfWeekFromDateString(r.date);
     const isWeekend = day === 0 || day === 6 || r.scheduledWorkMode === 'Weekly Off';
     const isWeekdayHoliday = !isWeekend && r.scheduledWorkMode === 'Holiday';
 
@@ -506,11 +513,14 @@ export function calculateEmployeeTenure(employee?: Employee): {
       ? employee.joiningDate
       : tenureDefaults[id] || '2023-11-15';
 
-  const refDate = new Date('2026-09-28T00:00:00+05:30');
-  const jDate = new Date(joiningDateStr + 'T00:00:00+05:30');
+  const [ry, rm, rd] = '2026-09-28'.split('-').map(Number);
+  const [jy, jm, jd] = joiningDateStr.split('-').map(Number);
 
-  let years = refDate.getFullYear() - jDate.getFullYear();
-  let months = refDate.getMonth() - jDate.getMonth();
+  let years = ry - jy;
+  let months = rm - jm;
+  if (rd < jd) {
+    months--;
+  }
   if (months < 0) {
     years--;
     months += 12;

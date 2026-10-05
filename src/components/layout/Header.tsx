@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, NavLink } from 'react-router-dom';
 import { 
   Search, 
   Bell, 
   Clock, 
   CheckCircle, 
   Command,
-  LogOut
+  LogOut,
+  Menu
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { hrmsService } from '../../services/hrmsService';
@@ -14,9 +15,15 @@ import { NotificationCenter } from './NotificationCenter';
 
 interface HeaderProps {
   onOpenSearch: () => void;
+  onToggleMobileMenu?: () => void;
+  isMobileMenuOpen?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  onOpenSearch,
+  onToggleMobileMenu,
+  isMobileMenuOpen = false
+}) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -46,25 +53,48 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch }) => {
   };
 
   return (
-    <header className="h-16 bg-brand-dark/95 backdrop-blur border-b border-brand-border/70 px-6 flex items-center justify-between sticky top-0 z-40">
-      {/* Left: Global Search trigger (Ctrl+K) */}
-      <div className="flex items-center gap-4 flex-1 max-w-md">
+    <header className="h-16 bg-brand-dark/95 backdrop-blur border-b border-brand-border/70 px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40">
+      {/* Left: Mobile menu toggle + Logo (<lg) + Search trigger */}
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 max-w-md">
+        {/* Mobile Hamburger Button */}
+        <button
+          type="button"
+          onClick={onToggleMobileMenu}
+          className="lg:hidden p-2 rounded-xl bg-brand-card hover:bg-brand-card-hover border border-brand-border text-brand-slate hover:text-brand-ink transition-colors shrink-0"
+          aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={isMobileMenuOpen}
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Mobile Brand Logo */}
+        <NavLink to="/dashboard" className="lg:hidden flex items-center shrink-0 mr-1 sm:mr-2 hover:opacity-95 transition-opacity">
+          <img
+            src="/brand/ethx-logo-footer.png"
+            alt="ETHX Softcon"
+            className="h-6 sm:h-7 w-auto object-contain max-w-[110px] sm:max-w-[140px]"
+          />
+        </NavLink>
+
+        {/* Global Search trigger (Ctrl+K) */}
         <button
           onClick={onOpenSearch}
-          className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-brand-card-hover/80 hover:bg-brand-card-elevated border border-brand-border text-xs text-brand-slate hover:text-brand-ink transition-all group"
+          className="flex-1 min-w-0 flex items-center justify-between px-2.5 sm:px-3.5 py-2 rounded-xl bg-brand-card-hover/80 hover:bg-brand-card-elevated border border-brand-border text-xs text-brand-slate hover:text-brand-ink transition-all group"
+          aria-label="Search employees, documents, leave"
         >
-          <div className="flex items-center gap-2.5">
-            <Search className="w-4 h-4 text-brand-slate group-hover:text-brand-red transition-colors" />
-            <span>Search employees, documents, leave...</span>
+          <div className="flex items-center gap-2 truncate">
+            <Search className="w-4 h-4 text-brand-slate group-hover:text-brand-red transition-colors shrink-0" />
+            <span className="hidden sm:inline truncate">Search employees, documents, leave...</span>
+            <span className="sm:hidden text-[11px] truncate">Search...</span>
           </div>
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded bg-black/40 border border-white/10 text-[10px] font-mono text-brand-slate">
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded bg-black/40 border border-white/10 text-[10px] font-mono text-brand-slate shrink-0">
             <Command className="w-2.5 h-2.5" /> K
           </kbd>
         </button>
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 shrink-0">
         {/* Live Attendance Web Punch Widget */}
         <div className="hidden lg:flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-brand-card border border-brand-border">
           <div className="flex items-center gap-1.5 text-xs font-mono text-brand-slate">
