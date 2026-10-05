@@ -646,8 +646,11 @@ export const hrmsService = {
     const { user, isHrAdmin, isDirector } = getActiveSessionUser();
     const effectiveCallerId = callerUserId || user?.employeeId || user?.id || '';
 
-    // Backend Access Enforcement: Non-admins cannot approve or reject leaves
-    if (!isHrAdmin && !isDirector) {
+    // Backend Access Enforcement: Verify authorization from active session or verified caller ID
+    const isCallerAdmin = isHrAdmin || isAuthorizedAttendanceLeaveAdmin(effectiveCallerId);
+    const isCallerDirector = isDirector || isAuthorizedAlternativeLeaveApprover(effectiveCallerId);
+
+    if (!isCallerAdmin && !isCallerDirector) {
       throw new Error(
         'Permission Denied: Only authorized HR administrator (Niky Sharma) or Company Director (Ram Chaturvedi) can approve or reject leave applications.'
       );
