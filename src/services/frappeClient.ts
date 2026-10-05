@@ -287,6 +287,22 @@ class FrappeClient {
         safeStorage.setItem(key, JSON.stringify(INITIAL_JOB_APPLICANTS));
         return INITIAL_JOB_APPLICANTS as unknown as T[];
       }
+      if (doctype === 'Internship Lifecycle') {
+        safeStorage.setItem(key, JSON.stringify(INITIAL_INTERNSHIP_LIFECYCLES));
+        return INITIAL_INTERNSHIP_LIFECYCLES as unknown as T[];
+      }
+      if (doctype === 'Intern Evaluation') {
+        safeStorage.setItem(key, JSON.stringify(INITIAL_INTERN_EVALUATIONS));
+        return INITIAL_INTERN_EVALUATIONS as unknown as T[];
+      }
+      if (doctype === 'Management Decision') {
+        safeStorage.setItem(key, JSON.stringify(INITIAL_MANAGEMENT_DECISIONS));
+        return INITIAL_MANAGEMENT_DECISIONS as unknown as T[];
+      }
+      if (doctype === 'Employment Offer') {
+        safeStorage.setItem(key, JSON.stringify(INITIAL_EMPLOYMENT_OFFERS));
+        return INITIAL_EMPLOYMENT_OFFERS as unknown as T[];
+      }
       return [];
     }
     try {
@@ -306,6 +322,22 @@ class FrappeClient {
           return INITIAL_JOB_APPLICANTS as unknown as T[];
         }
       }
+      if (doctype === 'Intern Evaluation' && (!Array.isArray(parsed) || parsed.length === 0)) {
+        safeStorage.setItem(key, JSON.stringify(INITIAL_INTERN_EVALUATIONS));
+        return INITIAL_INTERN_EVALUATIONS as unknown as T[];
+      }
+      if (doctype === 'Internship Lifecycle' && (!Array.isArray(parsed) || parsed.length === 0)) {
+        safeStorage.setItem(key, JSON.stringify(INITIAL_INTERNSHIP_LIFECYCLES));
+        return INITIAL_INTERNSHIP_LIFECYCLES as unknown as T[];
+      }
+      if (doctype === 'Management Decision' && (!Array.isArray(parsed) || parsed.length === 0)) {
+        safeStorage.setItem(key, JSON.stringify(INITIAL_MANAGEMENT_DECISIONS));
+        return INITIAL_MANAGEMENT_DECISIONS as unknown as T[];
+      }
+      if (doctype === 'Employment Offer' && (!Array.isArray(parsed) || parsed.length === 0)) {
+        safeStorage.setItem(key, JSON.stringify(INITIAL_EMPLOYMENT_OFFERS));
+        return INITIAL_EMPLOYMENT_OFFERS as unknown as T[];
+      }
       return parsed;
     } catch {
       if (doctype === 'Attendance') {
@@ -319,6 +351,22 @@ class FrappeClient {
       if (doctype === 'Job Applicant') {
         safeStorage.setItem(key, JSON.stringify(INITIAL_JOB_APPLICANTS));
         return INITIAL_JOB_APPLICANTS as unknown as T[];
+      }
+      if (doctype === 'Internship Lifecycle') {
+        safeStorage.setItem(key, JSON.stringify(INITIAL_INTERNSHIP_LIFECYCLES));
+        return INITIAL_INTERNSHIP_LIFECYCLES as unknown as T[];
+      }
+      if (doctype === 'Intern Evaluation') {
+        safeStorage.setItem(key, JSON.stringify(INITIAL_INTERN_EVALUATIONS));
+        return INITIAL_INTERN_EVALUATIONS as unknown as T[];
+      }
+      if (doctype === 'Management Decision') {
+        safeStorage.setItem(key, JSON.stringify(INITIAL_MANAGEMENT_DECISIONS));
+        return INITIAL_MANAGEMENT_DECISIONS as unknown as T[];
+      }
+      if (doctype === 'Employment Offer') {
+        safeStorage.setItem(key, JSON.stringify(INITIAL_EMPLOYMENT_OFFERS));
+        return INITIAL_EMPLOYMENT_OFFERS as unknown as T[];
       }
       return [];
     }

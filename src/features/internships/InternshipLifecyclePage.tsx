@@ -213,17 +213,35 @@ export const InternshipLifecyclePage: React.FC = () => {
   const handleOpenEvaluation = (internId: string) => {
     const ev = evaluations.find((e) => e.internId === internId);
     if (ev) {
-      setEvalReviewer(ev.assignedReviewer === 'Not assigned' ? '' : ev.assignedReviewer);
-      setEvalApprover(ev.assignedApprover === 'Not assigned' ? '' : ev.assignedApprover);
+      setEvalReviewer(
+        ev.assignedReviewer && ev.assignedReviewer !== 'Not assigned' ? ev.assignedReviewer : ''
+      );
+      setEvalApprover(
+        ev.assignedApprover && ev.assignedApprover !== 'Not assigned' ? ev.assignedApprover : ''
+      );
       const scoreMap: Record<string, number | null> = {};
-      ev.criteria.forEach((c) => {
+      (ev.criteria || []).forEach((c) => {
         scoreMap[c.id] = c.score;
       });
       setEvalScores(scoreMap);
-      setEvalStrengths(ev.strengths === 'Not provided' ? '' : ev.strengths);
-      setEvalImprovements(ev.improvementAreas === 'Not provided' ? '' : ev.improvementAreas);
-      setEvalRecommendation(ev.overallRecommendation);
-      setEvalRemarks(ev.decisionRemarks === 'Not provided' ? '' : ev.decisionRemarks);
+      setEvalStrengths(
+        ev.strengths && ev.strengths !== 'Not provided' ? ev.strengths : ''
+      );
+      setEvalImprovements(
+        ev.improvementAreas && ev.improvementAreas !== 'Not provided' ? ev.improvementAreas : ''
+      );
+      setEvalRecommendation(ev.overallRecommendation || 'Undecided');
+      setEvalRemarks(
+        ev.decisionRemarks && ev.decisionRemarks !== 'Not provided' ? ev.decisionRemarks : ''
+      );
+    } else {
+      setEvalReviewer('');
+      setEvalApprover('');
+      setEvalScores({});
+      setEvalStrengths('');
+      setEvalImprovements('');
+      setEvalRecommendation('Undecided');
+      setEvalRemarks('');
     }
     setShowReturnInput(false);
     setReturnReason('');
@@ -234,9 +252,19 @@ export const InternshipLifecyclePage: React.FC = () => {
   const handleOpenDecision = (internId: string) => {
     const dc = decisions.find((d) => d.internId === internId);
     if (dc) {
-      setSelectedDecision(dc.decision);
-      setDecisionRemarks(dc.decisionRemarks === 'Pending management evaluation review' ? '' : dc.decisionRemarks);
-      setDecisionActor(dc.decidedBy === 'Not assigned' ? user?.name || 'Company Directors' : dc.decidedBy);
+      setSelectedDecision(dc.decision || 'Pending decision');
+      setDecisionRemarks(
+        dc.decisionRemarks && dc.decisionRemarks !== 'Pending management evaluation review'
+          ? dc.decisionRemarks
+          : ''
+      );
+      setDecisionActor(
+        dc.decidedBy && dc.decidedBy !== 'Not assigned' ? dc.decidedBy : user?.name || 'Company Directors'
+      );
+    } else {
+      setSelectedDecision('Pending decision');
+      setDecisionRemarks('');
+      setDecisionActor(user?.name || 'Company Directors');
     }
     setDecisionModalInternId(internId);
   };
@@ -295,64 +323,104 @@ export const InternshipLifecyclePage: React.FC = () => {
   const handleSaveEvaluationDraft = async (status: EvaluationWorkflowStatus = 'In Progress') => {
     if (!activeEvalRecord || !evalModalInternId) return;
 
-    const updatedCriteria = activeEvalRecord.criteria.map((c) => ({
-      ...c,
-      score: evalScores[c.id] ?? null,
-    }));
+    try {
+      const updatedCriteria = (activeEvalRecord.criteria || []).map((c) => ({
+        ...c,
+        score: evalScores[c.id] ?? null,
+      }));
 
-    const finalScore = computedEvalScore?.completed ? computedEvalScore.score : null;
+      const finalScore = computedEvalScore?.completed ? computedEvalScore.score : null;
 
-    const payload: Partial<InternEvaluationRecord> = {
-      assignedReviewer: evalReviewer.trim() || 'Not assigned',
-      assignedApprover: evalApprover.trim() || 'Not assigned',
-      criteria: updatedCriteria,
-      calculatedScore: finalScore,
-      strengths: evalStrengths.trim() || 'Not provided',
-      improvementAreas: evalImprovements.trim() || 'Not provided',
-      overallRecommendation: evalRecommendation as any,
-      decisionRemarks: evalRemarks.trim() || 'Not provided',
-      workflowStatus: status,
-      ...(status === 'Submitted' ? { submissionDate: new Date().toISOString().split('T')[0] } : {}),
-      ...(status === 'Reviewed' ? { approvalDate: new Date().toISOString().split('T')[0] } : {}),
-    };
+      const reviewerVal = (evalReviewer || '').trim() || 'Not assigned';
+      const approverVal = (evalApprover || '').trim() || 'Not assigned';
+      const strengthsVal = (evalStrengths || '').trim() || 'Not provided';
+      const improvementsVal = (evalImprovements || '').trim() || 'Not provided';
+      const remarksVal = (evalRemarks || '').trim() || 'Not provided';
+      const recommendationVal = (evalRecommendation || 'Undecided') as any;
 
-    const res = await hrmsService.updateInternEvaluation(activeEvalRecord.id, payload);
-    if (res) {
-      showToast(`Evaluation saved for ${activeEvalIntern?.fullName} (${status})`);
-      setEvalModalInternId(null);
-      loadAllData();
+      const payload: Partial<InternEvaluationRecord> = {
+        assignedReviewer: reviewerVal,
+        assignedApprover: approverVal,
+        criteria: updatedCriteria,
+        calculatedScore: finalScore,
+        strengths: strengthsVal,
+        improvementAreas: improvementsVal,
+        overallRecommendation: recommendationVal,
+        decisionRemarks: remarksVal,
+        status: status,
+        workflowStatus: status,
+        isDraftPrivate: status === 'In Progress',
+        ...(status === 'Submitted' ? { submissionDate: new Date().toISOString().split('T')[0] } : {}),
+        ...(status === 'Reviewed' ? { approvalDate: new Date().toISOString().split('T')[0] } : {}),
+      };
+
+      const res = await hrmsService.updateInternEvaluation(activeEvalRecord.id, payload);
+      if (res) {
+        // Optimistically update local evaluation state immediately so table & KPIs update reactively
+        setEvaluations((prev) =>
+          prev.map((e) => (e.id === activeEvalRecord.id ? { ...e, ...payload, ...res } : e))
+        );
+        showToast(`Evaluation saved for ${activeEvalIntern?.fullName || 'Intern'} (${status})`);
+        setEvalModalInternId(null);
+        await loadAllData();
+      }
+    } catch (err: any) {
+      console.error('Failed to save evaluation:', err);
+      showToast(`Error: ${err?.message || 'Failed to save evaluation'}`);
     }
   };
 
   // Return Evaluation for revision
   const handleReturnEvaluation = async () => {
     if (!activeEvalRecord || !returnReason.trim()) return;
-    const res = await hrmsService.returnEvaluationForRevision(
-      activeEvalRecord.id,
-      user?.name || 'HR Management',
-      returnReason,
-      'Returned for reviewer revision'
-    );
-    if (res) {
-      showToast(`Evaluation returned to In Progress for revision.`);
-      setEvalModalInternId(null);
-      loadAllData();
+    try {
+      const res = await hrmsService.returnEvaluationForRevision(
+        activeEvalRecord.id,
+        user?.name || 'HR Management',
+        returnReason.trim(),
+        'Returned for reviewer revision'
+      );
+      if (res) {
+        setEvaluations((prev) =>
+          prev.map((e) => (e.id === activeEvalRecord.id ? { ...e, ...res } : e))
+        );
+        showToast(`Evaluation returned to In Progress for revision.`);
+        setEvalModalInternId(null);
+        await loadAllData();
+      }
+    } catch (err: any) {
+      console.error('Failed to return evaluation:', err);
+      showToast(`Error: ${err?.message || 'Failed to return evaluation'}`);
     }
   };
 
   // Save Management Decision
   const handleSaveDecision = async () => {
     if (!activeDecisionIntern) return;
-    const res = await hrmsService.recordManagementDecision(
-      activeDecisionIntern.id,
-      selectedDecision,
-      decisionRemarks.trim() || 'Recorded by management',
-      decisionActor.trim() || user?.name || 'HR Executive'
-    );
-    if (res) {
-      showToast(`Management decision recorded: ${selectedDecision}`);
-      setDecisionModalInternId(null);
-      loadAllData();
+    try {
+      const res = await hrmsService.recordManagementDecision(
+        activeDecisionIntern.id,
+        selectedDecision,
+        (decisionRemarks || '').trim() || 'Recorded by management',
+        (decisionActor || '').trim() || user?.name || 'HR Executive'
+      );
+      if (res) {
+        setDecisions((prev) => {
+          const idx = prev.findIndex((d) => d.internId === activeDecisionIntern.id);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = { ...next[idx], ...res };
+            return next;
+          }
+          return [...prev, res];
+        });
+        showToast(`Management decision recorded: ${selectedDecision}`);
+        setDecisionModalInternId(null);
+        await loadAllData();
+      }
+    } catch (err: any) {
+      console.error('Failed to save decision:', err);
+      showToast(`Error: ${err?.message || 'Failed to record decision'}`);
     }
   };
 
@@ -360,49 +428,67 @@ export const InternshipLifecyclePage: React.FC = () => {
   const handleSaveOfferTerms = async () => {
     if (!activeOfferRecord || !activeOfferIntern) return;
 
-    const updatedTerms = {
-      legalEmployer: 'ETHXSOFTCON Technologies Pvt Ltd',
-      designation: offerDesignation.trim() || 'Not provided',
-      department: offerDepartment.trim() || 'Not provided',
-      reportingManager: offerReportingManager.trim() || 'Not provided',
-      employmentArrangement: offerEmploymentArrangement.trim() || 'Not provided',
-      proposedJoiningDate: offerJoiningDate || '2026-10-01',
-      actualJoiningDate: offerJoiningDate || 'Not provided',
-      approvedSalary: offerSalary ? parseFloat(offerSalary) : null,
-      baseSalary: offerSalary ? parseFloat(offerSalary) : null,
-      workLocation: offerLocation.trim() || 'Not provided',
-      probationTerms: offerProbation.trim() || 'Not provided',
-      probationPeriod: offerProbation.trim() || 'Not provided',
-    };
+    try {
+      const updatedTerms = {
+        legalEmployer: 'ETHXSOFTCON Technologies Pvt Ltd',
+        designation: (offerDesignation || '').trim() || 'Not provided',
+        department: (offerDepartment || '').trim() || 'Not provided',
+        reportingManager: (offerReportingManager || '').trim() || 'Not provided',
+        employmentArrangement: (offerEmploymentArrangement || '').trim() || 'Not provided',
+        proposedJoiningDate: offerJoiningDate || '2026-10-01',
+        actualJoiningDate: offerJoiningDate || 'Not provided',
+        approvedSalary: offerSalary ? parseFloat(offerSalary) : null,
+        baseSalary: offerSalary ? parseFloat(offerSalary) : null,
+        workLocation: (offerLocation || '').trim() || 'Not provided',
+        probationTerms: (offerProbation || '').trim() || 'Not provided',
+        probationPeriod: (offerProbation || '').trim() || 'Not provided',
+      };
 
-    const res = await hrmsService.updateEmploymentOffer(activeOfferRecord.id, {
-      terms: updatedTerms,
-      status: offerStatusSelect,
-      offerStatus: offerStatusSelect,
-      ...(offerStatusSelect === 'Approved' ? { approvedBy: user?.name || 'Company Directors', approvalDate: new Date().toISOString().split('T')[0] } : {}),
-      ...(offerStatusSelect === 'Issued' ? { issuedDate: new Date().toISOString().split('T')[0] } : {}),
-    });
+      const payload: Partial<EmploymentOfferRecord> = {
+        terms: updatedTerms,
+        status: offerStatusSelect,
+        offerStatus: offerStatusSelect,
+        ...(offerStatusSelect === 'Approved' ? { approvedBy: user?.name || 'Company Directors', approvalDate: new Date().toISOString().split('T')[0] } : {}),
+        ...(offerStatusSelect === 'Issued' ? { issuedDate: new Date().toISOString().split('T')[0] } : {}),
+      };
 
-    if (res) {
-      showToast(`Employment terms updated for ${activeOfferIntern.fullName} (${offerStatusSelect})`);
-      setOfferModalInternId(null);
-      loadAllData();
+      const res = await hrmsService.updateEmploymentOffer(activeOfferRecord.id, payload);
+
+      if (res) {
+        setOffers((prev) =>
+          prev.map((o) => (o.id === activeOfferRecord.id ? { ...o, ...payload, ...res } : o))
+        );
+        showToast(`Employment terms updated for ${activeOfferIntern.fullName} (${offerStatusSelect})`);
+        setOfferModalInternId(null);
+        await loadAllData();
+      }
+    } catch (err: any) {
+      console.error('Failed to update offer:', err);
+      showToast(`Error: ${err?.message || 'Failed to update offer'}`);
     }
   };
 
   // Candidate Response Action (Accept / Reject)
   const handleCandidateResponse = async (status: 'Accepted' | 'Rejected') => {
     if (!activeOfferRecord || !activeOfferIntern) return;
-    const res = await hrmsService.recordOfferResponse(
-      activeOfferRecord.id,
-      status,
-      activeOfferRecord.terms.actualJoiningDate || undefined,
-      user?.name || 'Authorized HR'
-    );
-    if (res) {
-      showToast(`Offer response recorded: ${status}`);
-      setOfferModalInternId(null);
-      loadAllData();
+    try {
+      const res = await hrmsService.recordOfferResponse(
+        activeOfferRecord.id,
+        status,
+        activeOfferRecord.terms.actualJoiningDate || undefined,
+        user?.name || 'Authorized HR'
+      );
+      if (res) {
+        setOffers((prev) =>
+          prev.map((o) => (o.id === activeOfferRecord.id ? { ...o, ...res } : o))
+        );
+        showToast(`Offer response recorded: ${status}`);
+        setOfferModalInternId(null);
+        await loadAllData();
+      }
+    } catch (err: any) {
+      console.error('Failed to record response:', err);
+      showToast(`Error: ${err?.message || 'Failed to record response'}`);
     }
   };
 
