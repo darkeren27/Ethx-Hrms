@@ -265,7 +265,7 @@ export const HRAdminDashboard: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Executive Command Header & Real-Time Telemetry Bar */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-brand-card via-brand-card-hover to-brand-card border border-brand-border/80 shadow-card-dark relative overflow-hidden">
+      <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-brand-card via-brand-card-hover to-brand-card border border-brand-border/80 shadow-card-dark relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-full bg-radial-gradient pointer-events-none opacity-60" />
         
         {/* Real-time telemetry ticker */}
